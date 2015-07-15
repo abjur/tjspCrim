@@ -18,7 +18,7 @@ library(LaplacesDemon)
 library(dplyr)
 library(stringr)
 library(tidyr)
-library(tjsp)
+library(tjspCrim)
 library(ggplot2)
 library(lubridate)
 
