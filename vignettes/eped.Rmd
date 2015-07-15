@@ -1,0 +1,584 @@
+---
+title: \LARGE Reformas de decisão nas câmaras de direito criminal em São Paulo
+author: "Marcelo G. Nunes, Julio A. Z. Trecenti"
+date: '`r Sys.Date()`'
+output: 
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 12
+    keep_tex: yes
+linestretch: 1.3
+fontsize: 10pt
+geometry: margin=1in
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(LaplacesDemon)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(tjsp)
+library(ggplot2)
+library(lubridate)
+
+data(d_final)
+
+k <- function(x) as.numeric(gsub(' .*', '', x))
+
+tab <- function (d, variavel, n = Inf, v2 = 'decisao') {
+  d$x <- d[[v2]]
+  d$y <- d[[variavel]]
+  d %>% 
+    select(n_processo, y, x) %>% 
+    filter(!is.na(x)) %>% 
+    count(y, x) %>% 
+    mutate(total = sum(n), 
+      prop = n/total, val = scales::percent(prop), val = sprintf("%d (%s)", 
+          n, val), total = sprintf("%d %s", total, "(100%)")) %>% 
+    select(y, x, val, total) %>% group_by(x) %>%
+    do((function(dd) {
+      dd %>% bind_rows(data_frame(y = "total", 
+          x = first(dd$x), val = sprintf("%d (%s)", sum(k(dd$val)), 
+            total = scales::percent(sum(k(dd$val))/sum(k(dd$total))))))
+    })(.)) %>% 
+    ungroup %>% 
+    spread(x, val) %>% 
+    mutate(total = ifelse(is.na(total), 
+      sprintf("%d (%s)", as.integer(sum(k(total), na.rm = TRUE)), 
+          "100%"), total)) %>% select(one_of(names(.)[names(.) != 
+      "total"]), total) %>% 
+    mutate_each(funs(ifelse(is.na(.), "0 (0.0%)", .))) %>%
+    mutate(total2 = k(total)) %>%
+    arrange(desc(total2)) %>%
+    slice(c(2:n, 1)) %>%
+    select(-total2) %>%
+    rename_(variavel = 'y')
+}
+
+```
+
+
+#### Marcelo Guedes Nunes
+&nbsp;  
+
+Doutor em Direito pela Pontifícia Universidade Católica de São Paulo.  
+Contato eletrônico: mnunes@abjur.org.br  
+
+#### Julio Adolfo Zucon Trecenti  
+&nbsp;  
+  
+Mestrando em Estatística pelo Instituto de Matemática e Estatística da 
+Universidade de São Paulo.  
+Contato eletrônico: jtrecenti@abjur.org.br  
+
+## Introdução
+
+O Direito Criminal é uma área que traz consigo diversas questões difíceis e 
+importantes da nossa sociedade. Uma destas questões, que remete ao possível 
+descolamento da teoria do Direito e o que ocorre no mundo real, trata do 
+cumprimento da pena. Considerando-se o plano ideal e o princípio de ampla 
+defesa, mas também a conhecida morosidade dos tribunais, qual é o momento do 
+processo em que deveria ser iniciado o cumprimento de pena? Será que a taxa de 
+reforma das decisões é tão pequena a ponto de justificar o início do 
+cumprimento de pena após a sentença na primeira instância?
+
+Com o objetivo de obter essas taxas, a presente pesquisa utiliza como base de 
+dados um levantamento de 157.379 decisões em segunda instância, das quais pouco 
+menos de 60.000 envolvem apelações contra o Ministério Público, todas 
+proferidas entre 01/01/2014 e 31/12/2014 nas dezesseis Câmaras de Direito 
+Criminal do Estado de São Paulo, e nas Câmaras Extraordinárias. Todas as 
+informações foram obtidas através de ferramentas computacionais a partir de 
+bases de dados disponíveis publicamente, o que permitiria a reprodutibilidade 
+da pesquisa. Os dados semiestruturados foram organizados a partir da utilização 
+de técnicas de mineração de texto. Também foi necessário utilizar procedimentos 
+estatísticos adequados para lidar com problemas de dados faltantes.
+
+Os resultados ainda preliminares, surpreendentemente, revelam taxas de reforma 
+que corroboram de forma aproximada com o clássico teorema desenvolvido em 
+Priest & Klein (1984) sobre taxas de provimento e viés de seleção, mesmo tendo 
+os autores criado a teoria para casos cíveis. Como mostram os autores, as taxas 
+de improvimento de processos, nos grandes números, seguem uma tendência de se 
+aproximarem de 50% do total das decisões. Tal resultado é recorrente em 
+diversas áreas do Direito como, por exemplo, em processos tributários.
+
+O estudo aponta para taxas de reforma de decisões e exclusão da 
+punibilidade não muito elevadas, mas que também podem não ser negligíveis a 
+ponto de justificar a ideia de adiantamento do início do cumprimento de pena 
+para a decisão em primeira instância. Com o intuito de complementar e 
+aprofundar a pesquisa, realizamos análises para tipos específicos de crime, 
+como roubo e tráfico de drogas, comparando as taxas de reforma em cada 
+subpopulação. Realizamos também a comparação dos resultados relativamente às 
+câmaras de julgamento e relatores. 
+
+Acreditamos que o estudo possa servir como base de informação quantitativa para 
+auxiliar nas discussões correntes sobre o melhor momento para dar início ao 
+cumprimento de pena.
+
+## Motivação
+
+Por conta da ascenção da mídia nas redes sociais, escândalos de corrupção e 
+o aumento das discussões políticas, o tema da impunidade aparece de forma
+mais explícita. Uma das principais questões que surgem quando o tema é 
+impunidade e que gerou as ideias iniciais desse artigo é:
+quando um réu condenado deve começar a cumprir pena? A justiça deve esperar o
+encerramento definitivo do processo, com o chamado trânsito em julgado, ou pode
+iniciar o cumprimento já a partir de uma decisão terminativa, como a sentença 
+ou o acórdão de segundo grau?
+
+A resposta intuitiva seria aguardar a condenação definitiva, para evitar que um 
+réu comece a cumprir pena e depois acabe sendo absolvido por um tribunal 
+superior. Essa é a atual opção do legislador, que, no entanto, não está imune a
+problemas decorrentes da demora no processo. A longa espera pelo trânsito em 
+julgado cria uma sensação de impunidade nas vítimas, que, não desprovidas de 
+razão, assistem passivas aos desdobramentos da burocracia processual como uma
+chancela à impunidade. Essa sensação se agrava quando os acusados conseguem
+extinguir os processos pela prescrição, escapando da pena não por terem provado
+inocência, mas pela demora do judiciário em condená-los. Além disso, a 
+possibilidade de ganhar tempo incentiva uma profusão de recursos e congestiona 
+os tribunais.
+
+Como reação surgiram as propostas de aceleração dos processos, no sentido de
+atribuir eficácia imediata para a sentença de primeira instância (nos casos de
+crimes graves em concreto) ou, ainda, de antecipar o trânsito em julgado para 
+a segunda instância, efetivando a condenação ainda que haja pendência do 
+julgamento de recursos especial e extraordinário. As propostas, por sua vez, 
+geraram críticas. Os críticos da aceleração dos processos argumentam que a 
+presunção de inocência deve ser respeitada para evitar a injustiça de prender 
+quem não pode ainda se defender. De outro lado, os defensores das reformas 
+entendem que a ação do estado deve ser acelerada para evitar a injustiça de 
+não prender quem cometeu crime.
+
+Se limitarmos a discussão ao plano principiológico, como ela é tradicionalmente
+enfrentada pela classe jurídica, fica difícil avançar. Qual princípio é mais
+importante: a presunção de inocência ou a efetividade do processo? Formulada 
+nesses termos, a pergunta não tem uma reposta aceitável porque nós precisamos 
+das duas coisas: de um processo que garanta a presunção de inocência e que seja  
+ao mesmo tempo efetivo. É como perguntar se uma pessoa prefere água potável ou 
+ar. Na prática, queremos os dois: um volume de água que não seja nem tão grande
+ao ponto de me matar afogado, nem tão escasso ao ponto de me matar de sede. 
+Isso nos leva a essência do trabalho da jurimetria, que é quantificar os
+efeitos dessas propostas para auxiliar na formulação de políticas públicas.
+Portanto, acredito que a questão da aceleração dos processos deve se preocupar 
+menos com peso abstrato dos princípios e mais com a estimação da quantidade de
+pessoas potencialmente afetadas por cada proposta.
+
+Sobre prisão provisória, XXX (falar do soudapaz)...
+
+
+## Objetivos
+
+Nossa pesquisa é bastante direta e preliminar. Temos como objetivos
+
+- Estimar a taxa de reforma de decisões nas câmaras de direito criminal em São 
+Paulo.
+- Desagregar essa taxa de acordo com outras informações processuais.
+- Discutir os resultados e propor novas análises.
+
+## Dados
+
+Os dados foram obtidos via *web scraping*, ou raspagem de dados a partir das 
+informações disponíveis no Tribunal de Justiça de São Paulo. A pesquisa foi 
+realizada utilizando-se um pacote construído com o software estatístico R. 
+O código fonte do estudo está disponível e a pesquisa poderia ser replicada com 
+diferentes configurações^[Código disponível em [https://github.com/jtrecenti/tjspCrim](https://github.com/jtrecenti/tjspCrim).].
+
+A extração e estruturação de dados passou por três fases principais: a 
+listagem de acórdãos, o download das informações dos processos e a manipulação
+dos dados e text mining para obtenção da base de dados finais.
+
+### Listagem de acórdãos
+
+A listagem dos processos foi feita a partir da busca de jurisprudência 
+disponível na ferramenta e-SAJ do TJSP^[Acesse [https://esaj.tjsp.jus.br/cjsg/resultadoCompleta.do](https://esaj.tjsp.jus.br/cjsg/resultadoCompleta.do) para visualizar a página utilizada na pesquisa.]. Fizemos a busca da forma menos 
+restritiva possível, limitando apenas aos 146 órgãos julgadores 
+definidos na seção "Direito Criminal" na página de pesquisa e
+limitando as datas de julgamento entre 01/01/2014 até 31/12/2014.
+
+A consulta retornou um total de 157.379 acórdãos. Pelo que vimos em outras 
+pesquisas, esse número pode mudar um pouco caso a pesquisa seja realizada em 
+momentos diferentes, mesmo que o período da pesquisa esteja no passado. 
+Na nossa consulta mais recente, realizada em 13/07/2015, a consulta retornou 
+157.412 resultados.
+
+A partir da utilização do robô construído, foi possível acessar todas as 
+páginas resultantes da consulta e obter as seguintes informações, ainda em
+formato semi-estruturado (HTML) ou não estruturado (textos livres). As 
+informações incluem número do processo, código do acórdão (interno do sistema 
+SAJ), classe / assunto, texto sem formatação, nome do relator, comarca de 
+origem, órgão julgador, data do julgamento, data do registro e ementa.
+
+A informação mais relevante nessa pesquisa é o número do processo. O número 
+foi utilizado para acessar os processos usando outra ferramenta de pesquisa do
+e-SAJ. 
+
+### Download de informações dos processos
+
+A segunda etapa para obtenção dos dados foi obter informações extras a partir
+da consulta de processos do segundo grau no e-SAJ^[Acesse [https://esaj.tjsp.jus.br/cpo/sg/open.do](https://esaj.tjsp.jus.br/cpo/sg/open.do) para visualizar a página utilizada na pesquisa.].
+Para atender os objetivos da pesquisa, no entanto, fizemos um filtro inicial 
+nos dados. Observe as classes processuais contidas na Tabela 1. 
+Como nosso interesse é somente nas apelações, realizamos um primeiro filtro 
+na base original, buscando apenas decisões com essa classe processual, 
+resultando em 68.238 decisões.
+
+```{r echo=FALSE}
+d_laura %>%
+    separate(classe_assunto, c('classe', 'assunto'), sep=' / ', 
+             extra = 'merge') %>%
+  count(classe, sort = TRUE) %>%
+  mutate(classe = ifelse(n < 500, 'Outros', classe)) %>%
+  group_by(classe) %>%
+  summarise(n = sum(n)) %>%
+  arrange(desc(n)) %>%
+  mutate(`   %` = scales::percent(n/sum(n))) %>%
+  bind_rows(summarise(., classe = 'Total', n = sum(n), `   %` = '100.0%')) %>%
+  xtable::xtable(caption = 'Tabela de frequências das classes processuais.',
+                 label = 'tab-freq-classe') %>%
+  print(include.rownames = FALSE)
+
+```
+
+A partir da lista de processos, utilizamos a página do e-SAJ para
+consulta de processos de segundo grau. Na base de dados filtrada, temos somente 
+68.044 números de processos únicos (os números duplicados correspondem a 
+processos com mais de uma apelação, e.g., apelação do ministério público e do
+réu).
+
+Utilizando ferramentas semelhantes à da subseção anterior 
+para raspagem dos dados, conseguimos obter
+informações do texto da decisão, partes e andamentos dos processos. Essas 
+informações foram então incorporadas à base de dados original filtrada.
+
+### Manipulação e text mining
+
+O último passo para a obtenção da base de dados final é também o mais 
+trabalhoso. A consolidação envolve a manipulação e limpeza dos dados, além da 
+extração de informações dos textos.
+
+Nessa pesquisa, consideramos no escopo somente apelações realizadas contra
+o Ministério Público. Assim, incluímos na base somente processos em que o réu 
+apelava para pedir cancelamento, redução de pena, etc. Após esse filtro ficamos
+com uma base contendo 57.625 processos.
+
+Para obter as decisões dos processos, fizemos um *text mining* dos textos das 
+decisoes, extraindo os resultados a partir de regras lógicas e expressões
+regulares. Os resultados não são totalmente a prova de erros, mas é provavel 
+que as classificações estejam próximas da realidade.
+
+Não foi possível classificar a decisão de 618 casos e, por conta disso,
+as análises precisam utilizar técnicas que lidam de forma adequada com
+dados faltantes. Para isso, utilizamos imputação de dados utilizando o
+modelo Amelia II (Gary King et. al., 2011).
+
+### Base de dados final
+
+A base de dados final contém 57.625 linhas e 7 colunas, com as 
+seguintes variáveis:
+
+- Número do processo: número CNJ identificador do processo.
+- Relator: nome do relator.
+- Comarca: nome da comarca de origem do processo.
+- Órgão Julgador: câmara de direito criminal.
+- Data de julgamento: data do julgamento do processo.
+- Assunto: assunto do processo, na maioria das vezes classificado a partir da
+resolução 65 do CNJ.
+- Decisão: decisão do processo.
+
+## Resultados
+
+A Tabela XXX mostra o a distribuição das decisões dos processos. É interessante
+notar que a taxa de decisões desfavoráveis é de aproximadamente 50%, o que 
+vai de encontro com o resultado apresentado por Priest & Klein (1984).
+
+```{r echo=FALSE}
+d_final %>%
+  count(decisao, sort = TRUE) %>%
+  mutate(`   %` = scales::percent(n/sum(n))) %>%
+  bind_rows(summarise(., decisao = 'Total', n = sum(n), `   %` = '100.0%')) %>%
+  xtable::xtable(caption = 'Tabela de frequências dos resultados dos processos.',
+                 label = 'tab-freq-result') %>%
+  print(include.rownames = FALSE)
+```
+
+O modelo apresentado por Priest e Klein utiliza é baseado em um viés
+de seleção que considera a qualidade do recurso e as expectativas das partes
+em relação a esse recurso. Vamos ilustrar isso no caso cível. Por um lado, se 
+ambas as partes acreditam que o autor tem razão, o réu tende a oferecer um 
+acordo. Por outro lado, se ambas as partes acreditam que o réu tem razão, então
+o autor não chega a litigar. O litígio ocorre quando existe uma diferença nas
+expectativas das partes em relação ao processo, ou seja, quando ambos acreditam 
+que vão ganhar. Isso faz com que somente casos com maior incerteza de resultado
+cheguem a julgamento, de forma que, sob certas suposições, a proporção final de
+resultados favoráveis tenda ao valor de 50%.
+
+No caso criminal, no entanto, o acordo entre as partes não existe. Isso seria
+suficiente para invalidar o modelo de Priest e Klein. O único estudo já feito
+sobre viés de seleção em casos criminais é encontrado em Klerman (2000), e ele
+só foi possível pois a pesquisa é baseada em processos do século XIII, ainda na
+idade média, que segundo o autor incluiam a possibilidade de acordo.
+
+Ainda assim, encontramos na nossa pesquisa um valor muito próximo de 50%. Esse
+é um resultado bastante intrigante, que poderia ser fruto do acaso, mas poderia
+também ser a aplicação de um modelo de seleção ainda desconhecido na academia.
+Neste artigo, não almejamos construir tal modelo, e o que fizemos foi 
+simplesmente investigar o que ocorre com os resultados em algumas 
+subpopulações.
+
+#### Comarca de origem
+
+A Tabela XXX mostra a distribuição dos resultados dos processos em relação
+às quinze comarcas com maior volume processual. Podemos notar que o padrão 
+muda de forma significativa em cada comarca. Piracicaba, Santo André e Campinas
+apresentam taxas de apelações negadas acima de 60%, enquanto Mogi das Cruzes e
+Sumaré apresentam taxas menores do que 45%. Num contexto de viés de seleção,
+estas diferenças podem ser significativas e podem indicar que o perfil dos
+processos e/ou decisões em primeira instância nessas comarcas pode ser 
+diferente.
+
+```{r echo=FALSE}
+d_final %>% 
+  tab('comarca', 15) %>% 
+  rename(Comarca = variavel) %>% 
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo comarca.',
+    label = 'tab-freq-result-comarca'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+### Assunto
+
+Em relação ao assunto, é de se esperar que este tenha um efeito relevante no
+resultado das apelações, principalmente por conta da gravidade do crime e
+da dificuldade na elaboração de provas. Por outro lado, por conta da existência
+do viés de seleção, essas diferenças podem parecer menores do que realmente são.
+
+A Tabela XXX mostra a distribuição dos resultados dos processos em relação aos
+vinte assuntos com maior volume processual. Podemos verificar uma grande 
+variabilidade nos resultados dos processos, considerando-se o viés de seleção
+inerente. Os assuntos com maiores taxas de recursos negados são homicídio
+qualificado, latrocínio, roubo e estupro de vulnerável, justamente os tipos
+de crimes considerados mais graves. Os três assuntos com menores taxas de 
+recursos negados são os crimes de trânsito e violação de direito autoral e
+outros assuntos, que agrupa todos os assuntos trinta ou menos processos.
+
+```{r echo=FALSE}
+d_final %>% 
+  tab('assunto', 20) %>% 
+  rename(Assunto = variavel) %>% 
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo assunto.',
+    label = 'tab-freq-result-assunto'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+### Órgão julgador
+
+Em relação ao órgão julgador espera-se, a priori, que o órgão não
+influencie na distribuição das decisões dos processos, pois os processos
+dentro de cada câmara podem ser considerados homogêneos. Essa explicação só 
+seria válida, no entanto, em relação às câmaras ordinárias, pois as câmaras 
+extraordinárias julgam, em teoria, processos com características distintas.
+
+A Tabela XXX mostra a distribuição dos resultados dos processos em relação ao
+tipo de órgão julgador. Na comparação, é possível notar que as câmaras 
+extraordinárias apresentam uma ligeira superioridade em relação à proporção
+de recursos negados, no entanto, essa diferença não chega perto das diferenças
+encontradas entre algumas câmaras ordinárias.
+
+```{r echo=FALSE}
+d_final %>%
+  mutate(tipo_orgao = ifelse(str_detect(orgao_julgador, 'Extra'),
+                             'Extraordinária', 'Ordinária')) %>%
+  tab('tipo_orgao', 20) %>% 
+  rename(`Tipo` = variavel) %>%
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo tipo de órgão julgador.',
+    label = 'tab-freq-result-tiporgao'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+Os resultados que seguem são surpreendentes. A Tabela XXX mostra a distribuição 
+dos resultados dos processos em relação aos órgãos julgadores. Aqui, 
+encontramos discrepâncias enormes, onde podemos encontrar câmaras com mais de
+75% de recursos negados (quarta e sexta) e câmaras com menos de 30% de recursos
+negados (primeira, segunda e décima segunda). Este resultado poderia ser 
+explicado por duas hipóteses: i) os processos não são distribuídos 
+aleatoriamente nas câmaras, e é feita uma triagem que envolve a "qualidade" do
+recurso; ou ii) os magistrados de cada câmara comportam-se de maneiras muito
+diferentes, mesmo para processos considerados homogêneos.
+
+```{r echo=FALSE}
+d_final %>% 
+  tab('orgao_julgador', 20) %>% 
+  rename(`Órgão julgador` = variavel) %>% 
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo órgao julgador.',
+    label = 'tab-freq-result-orgao'
+  ) %>%
+  print(include.rownames = FALSE)
+
+  
+```
+
+Uma alternativa para verificar se existe uma diferença nos tipos processuais
+dentro de cada câmara é estudar a distribuição dos assuntos dentro das câmaras.
+Essa explicação não seria definitiva, afinal pode ser que sejam separados 
+processos de mesmos assuntos mas com qualidades diferentes, mas é a verificação
+que os dados nos permitem realizar.
+
+A Tabela XXX mostra a distribuição de assuntos em cada câmara. Como temos muitos
+assuntos, foi necessário agrupar os assuntos com menor volume em uma categoria.
+Em relação aos assuntos tráfico de drogas e condutas afins, furto, furto
+qualificado e roubo majorado, podemos identificar algumas diferenças nas 
+distribuições, mas nada que justifique a grande discrepância observada nos 
+resultados.
+
+```{r echo=FALSE}
+d_final %>% 
+  group_by(assunto) %>%
+  mutate(n = n()) %>%
+  ungroup() %>%
+  mutate(assunto = ifelse(n < 2500, 'Outros assuntos', assunto)) %>%
+  tab('orgao_julgador', 20, v2 = 'assunto') %>%
+  xtable::xtable(
+    caption = 'Tabela de frequências dos assuntos dos processos segundo órgao julgador.',
+    label = 'tab-freq-assunto-orgao'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+Na Figura XXX, buscamos mostrar de forma visual a distribuição de todos
+os assuntos dentro de cada câmara, mostrando a proporção de processos de cada
+assunto em cada câmara. Não identificamos os assuntos para não poluir o gráfico.
+No gráfico, é possível notar ligeiras discrepâncias, principalmente na décima
+terceira e quinta câmaras. A décima terceira câmara não mostra
+diferenças nos resultados em relação ao total, enquanto a quinta câmara 
+apresenta alta proporção de recursos negados (71%).
+
+```{r echo=FALSE, fig.cap='Distribuição dos assuntos em cada câmara.'}
+d_final %>%
+  count(orgao_julgador, assunto) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup %>%
+  ggplot(aes(x = orgao_julgador, fill = assunto, y = prop)) +
+  geom_bar(stat = 'identity', colour = 'black') +
+  guides(fill = FALSE) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+```
+
+Buscando homogeneizar os grupos, definimos um algoritmo que cria uma 
+reamostragem de processos, dentro de cada câmara, a partir dos assuntos, mas
+utilizando como base a proporção geral dos assuntos na base de dados. Dessa
+forma, foi possível construir uma base com o mesmo número de observações, mas
+com a mesma distribuição de assuntos dentro de cada câmara. Observe, na 
+Figura XXX, como as câmaras ficaram próximas. 
+
+```{r echo=FALSE, fig.cap='Distribuição dos assuntos em cada câmara, base homogeneizada.'}
+set.seed(666)
+prop <- d_final %>% with(table(assunto)) %>% prop.table() %>% as.numeric()
+nm <- d_final %>% with(table(assunto)) %>% prop.table() %>% names()
+result <- d_final
+for(p in unique(d_final$orgao_julgador)) {
+  aux <- result[d_final$orgao_julgador == p, ]
+  assuntos <- nm[rcat(nrow(aux), prop)]
+  l <- lapply(assuntos, function(x) {
+    a <- aux %>%
+      filter(assunto == x)
+    if(nrow(a) == 0) return(sample_n(aux, 1))
+    a %>% sample_n(1)
+  })
+  d <- bind_rows(l)
+  result[d_final$orgao_julgador == p, ] <- d
+}
+result %>%
+  count(orgao_julgador, assunto) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup %>%
+  ggplot(aes(x = orgao_julgador, fill = assunto, y = prop)) +
+  geom_bar(stat = 'identity', colour = 'black') +
+  guides(fill = FALSE) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+```
+
+A Tabela XXX mostra os resultados para a base de dados homogeneizada. Podemos
+observar que, mesmo realizando esse ajuste, os resultados das câmaras permanecem
+distintos.
+
+```{r echo=FALSE}
+result %>% 
+  tab('orgao_julgador', 20) %>% 
+  rename(`Órgão julgador` = variavel) %>% 
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo órgao julgador, a partir de base homogeneizada.',
+    label = 'tab-freq-result-orgao2'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+### Relator
+
+A análise por órgão julgador nos dá a intuição de que pode ser que os 
+resultados dos processos sejam efeito de diferentes formas que os magistrados
+têm ao conduzir os processos. 
+
+A Tabela XXX mostra a distribuição dos resultados dos processos em relação aos
+quinze relatores com maior volume de processos. Na comparação, é possível notar 
+que existem discrepâncias significativas na proporção de resultados 
+desfavoráveis, chegando a ser maior do que 85% em dois casos. Seria
+interessante investigar esses casos mais a fundo, pois a diferença observada
+poderia ser explicada tanto por uma diferença na interpretação quanto por 
+diferenças dos perfis dos processos de cada relator.
+
+```{r echo=FALSE}
+d_final %>% 
+  tab('relator', 15) %>% 
+  rename(`Relator` = variavel) %>% 
+  xtable::xtable(
+    caption = 'Tabela de frequências dos resultados dos processos segundo relator.',
+    label = 'tab-freq-result-relator'
+  ) %>%
+  print(include.rownames = FALSE)
+```
+
+Buscando verificar se existe viés por conta dos assuntos dos processos, 
+aplicamos a mesma análise realizada nas câmaras afim de homogeneizar os 
+relatores. Assim como no caso das câmaras, as discrepâncias foram mantidas.
+
+### Data de julgamento
+
+A Figura XXX mostra as proporções de resultados dos processos em cada mês. É
+possível notar que entre os meses de junho e setembro houve um aumento
+significativo na proporção de recursos negados, caindo novamente entre 
+setembro e dezembro. 
+
+```{r echo=FALSE, fig.cap='Proporções resultados dos processos por mês.'}
+aux <- d_final %>%
+  mutate(data = as.Date(data, origin = '1970-01-01')) %>%
+  mutate(ano_mes = as.Date(sprintf('%d-%02d-01', year(data), month(data)))) %>%
+  filter(year(data) < 2015)
+aux %>%
+  count(ano_mes, decisao) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup %>%
+  ggplot(aes(x = ano_mes, y = prop, colour = decisao)) +
+  geom_line() +
+  geom_text(aes(y = 0.65, label = n, colour = NULL), 
+            data = count(aux, ano_mes)) +
+  scale_x_date(breaks = scales::date_breaks('1 month'),
+               labels = scales::date_format("%b")) +
+  theme_bw()
+```
+
+## Discussão
+
+XXX
+
+## Considerações finais
+
+XXX
