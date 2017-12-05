@@ -1,0 +1,37 @@
+title: "Reformas de decisão nas câmaras de direito criminal em São Paulo"
+subtitle:
+tags:
+  - acordao
+  - criminal
+  - decisão
+  - reforma
+  - tjsp
+team:
+  - Marcelo Guedes Nunes
+  - Julio Trecenti
+
+link: https://github.com/abjur/tjspCrim
+
+description: Pesquisa realizada sem financiamento externo com o objetivo de calcular as taxas de reforma de 
+decisão de acordo com a origem do recurso, tipo de crime, câmara julgadora e relatória, 
+com a finalidade de fornecer indícios quantitativos capazes de contribuir para o debate sobre o 
+momento apropriado para o início de cumprimento de pena por condenados. Somente seria factível 
+antecipar o início do cumprimento caso as taxas de improvimento fossem suficientemente elevadas.
+
+abstract: Por conta da ascensão da mídia nas redes sociais, escândalos de corrupção e o aumento das discussões
+políticas, o tema da impunidade aparece de forma mais explícita e uma das principais questões
+que surgem é: quando um réu condenado deve começar a cumprir pena? A justiça deve esperar 
+o encerramento definitivo do processo, com o chamado trânsito em julgado, ou pode iniciar o 
+cumprimento já a partir de uma decisão terminativa, como a sentença ou o acórdão de segundo grau?. 
+Dessa forma, a pesquisa analisou 157.379 acórdãos das câmaras de direito criminal do Tribunal de 
+Justiça do Estado de São Paulo, proferidas entre 01 de janeiro e 31 de dezembro de 2014, com o intuito 
+de permitir que o estudo fosse fonte de informação quantitativa para auxiliar nas discussões correntes 
+sobre o melhor momento para dar início ao cumprimento de pena. Os resultados confirmaram algumas intuições, 
+trouxeram novas ideias e mostraram números que desafiam o senso comum.
+
+figures:
+resultados:
+  -Os resultados das apelações, quando comparados entre câmaras, apresentam variações muito elevadas, com taxas de recursos negados indo de 16% até 81%.
+  -Crimes mais graves apresentam taxas de improvimento maiores. O crime com maior taxa é o de homicídio qualificado, com 66.9%, e o de menor são os crimes de trânsito, 36.4%.
+  -A quantidade de apelações contra o Ministério Público que são parcialmente e totalmente providos em segunda instância é relevante.
+references:
