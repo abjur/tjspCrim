@@ -1,0 +1,108 @@
+---
+title: "Reformas de decisão nas câmaras de direito criminal em São Paulo" 
+author: "Marcelo G. Nunes, Julio A. Z. Trecenti"
+logo: "logo-abj.png"
+company: "Associação Brasileira de Jurimetria"
+company-address: "Rua Gomes de Carvalho, 1356, 2º andar. CEP 04547-005 - São Paulo, SP, Brasil"  
+company-site: "http://abj.org.br"
+output: 
+  abjTemplates::      pdf_document:
+    toc: FALSE
+    keep_tex: FALSE
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+#source("./R/download.R")
+```
+
+# Marcelo Guedes Nunes
+
+Doutor em Direito pela Pontifícia Universidade Católica de São Paulo.
+
+Contato eletrônico: mnunes@abjur.org.br.
+
+# Julio Adolfo Zucon Trecenti
+
+Doutorando em Estatística pelo Instituto de Matemática e Estatística da Universidade de São Paulo.
+
+Contato eletrônico: jtrecenti@abjur.org.br.
+
+## Introdução
+
+O Direito Criminal é uma área que traz consigo diversas questões difíceis e importantes da nossa sociedade. Uma destas questões, que remete ao possível descolamento da teoria do Direito e o que ocorre no mundo real, trata do cumprimento da pena. Considerando-se o plano ideal e o princípio de ampla defesa, mas também a conhecida morosidade dos tribunais, qual é o momento do processo em que deveria ser iniciado o cumprimento de pena? Será que a taxa de reforma das decisões é tão pequena a ponto de justificar o início do cumprimento de pena após a sentença na primeira instância?
+
+Com o objetivo de obter essas taxas, a presente pesquisa utiliza como base de dados um levantamento de 157.379 decisões em segunda instância, das quais pouco menos de 60.000 envolvem apelações contra o Ministério Público, todas proferidas entre 01/01/2014 e 31/12/2014 nas dezesseis Câmaras de Direito Criminal do Estado de São Paulo, e nas Câmaras Extraordinárias. Todas as informações foram obtidas através de ferramentas computacionais a partir de bases de dados disponíveis publicamente, o que permitiria a reprodutibilidade da pesquisa. Os dados semiestruturados foram organizados a partir da utilização de técnicas de mineração de texto. Também foi necessário utilizar procedimentos estatísticos adequados para lidar com problemas de dados faltantes.
+
+Os resultados ainda preliminares, surpreendentemente, revelam taxas de reforma que corroboram de forma aproximada com o clássico teorema desenvolvido em Priest \& Klein (1984) sobre taxas de provimento e viés
+de seleção, mesmo tendo os autores criado a teoria para casos cíveis. Como mostram os autores, as taxas de improvimento de processos, nos grandes números, seguem uma tendência de se aproximarem de 50\% do total
+das decisões. Tal resultado é recorrente em diversas áreas do Direito como, por exemplo, em processos tributários.
+
+O estudo aponta para taxas de reforma de decisões e exclusão da punibilidade não muito elevadas, mas que também podem não ser negligíveis a ponto de justificar a ideia de adiantamento do início do cumprimento de pena para a decisão em primeira instância. Com o intuito de complementar e aprofundar a pesquisa, realizamos análises para tipos específicos de crime, como roubo e tráfico de drogas, comparando as taxas de reforma em cada subpopulação. Realizamos também a comparação dos resultados relativamente às câmaras de julgamento e relatores. 
+
+Acreditamos que o estudo possa servir como base de informação quantitativa para auxiliar nas discussões correntes sobre o melhor momento para dar início ao cumprimento de pena.
+
+## Motivação
+
+Por conta da ascenção da mídia nas redes sociais, escândalos de corrupção e o aumento das discussões políticas, o tema da impunidade aparece de forma mais explícita. Uma das principais questões que surgem
+quando o tema é impunidade e que gerou as ideias iniciais desse artigo é: quando um réu condenado deve começar a cumprir pena? A justiça deve esperar o encerramento definitivo do processo, com o chamado trânsito em julgado, ou pode iniciar o cumprimento já a partir de uma decisão terminativa, como a sentença ou o acórdão de segundo grau?
+
+A resposta intuitiva seria aguardar a condenação definitiva, para evitar que um réu comece a cumprir pena e depois acabe sendo absolvido por um tribunal superior. Essa é a atual opção do legislador, que, no entanto,
+não está imune a problemas decorrentes da demora no processo. A longa espera pelo trânsito em julgado cria uma sensação de impunidade nas vítimas, que, não desprovidas de razão, assistem passivas aos desdobramentos da burocracia processual como uma chancela à impunidade. Essa sensação se agrava quando os acusados conseguem extinguir os processos pela prescrição, escapando da pena não por terem provado inocência, mas pela demora do judiciário em condená-los. Além disso, a possibilidade de ganhar tempo incentiva uma profusão de recursos e congestiona os tribunais.
+
+Como reação surgiram as propostas de aceleração dos processos, no sentido de atribuir eficácia imediata para a sentença de primeira instância (nos casos de crimes graves em concreto) ou, ainda, de antecipar o trânsito em julgado para a segunda instância, efetivando a condenação ainda que haja pendência do julgamento de recursos especial e extraordinário. As propostas, por sua vez, geraram críticas. Os críticos da aceleração dos processos argumentam que a presunção de inocência deve ser respeitada para evitar a injustiça de prender quem não pode ainda se defender. De outro lado, os defensores das reformas entendem que a ação do estado deve ser acelerada para evitar a injustiça de não prender quem cometeu crime.
+
+Se limitarmos a discussão ao plano principiológico, como ela é tradicionalmente enfrentada pela classe jurídica, fica difícil avançar. Qual princípio é mais importante: a presunção de inocência ou a efetividade do processo? Formulada nesses termos, a pergunta não tem uma reposta aceitável porque nós precisamos das duas coisas: de um processo que garanta a presunção de inocência e que seja ao mesmo tempo efetivo. É como perguntar se uma pessoa prefere água potável ou ar. Na prática, queremos os dois: um volume de água que não seja nem tão grande ao ponto de me matar afogado, nem tão escasso ao ponto de me matar de sede. Isso
+nos leva a essência do trabalho da jurimetria, que é quantificar os efeitos dessas propostas para auxiliar na formulação de políticas públicas. Portanto, acredito que a questão da aceleração dos processos deve se preocupar menos com peso abstrato dos princípios e mais com a estimação da quantidade de pessoas potencialmente afetadas por cada proposta.
+
+## Objetivos
+
+Nossa pesquisa é bastante direta e preliminar. Temos como objetivos
+
+- Estimar a taxa de reforma de decisões nas câmaras de direito criminal em São Paulo.
+- Desagregar essa taxa de acordo com outras informações processuais.
+- Discutir os resultados e propor novas análises.
+
+Os dados foram obtidos via *web scraping*, ou raspagem de dados a partir das informações disponíveis no Tribunal de Justiça de São Paulo. A pesquisa foi realizada utilizando-se um pacote construído com o software estatístico R. O código fonte do estudo está disponível e a pesquisa poderia ser replicada com diferentes configurações [^codigo].
+
+[^codigo]: Código disponível em [github.com/abjur/tjspCrim](https://github.com/abjur/tjspCrim).
+
+A extração e estruturação de dados passou por três fases principais: a listagem de acórdãos, o download das informações dos processos e a manipulação dos dados e text mining para obtenção da base de dados finais.
+
+## Listagem de acórdãos
+
+A listagem dos processos foi feita a partir da busca de jurisprudência disponível na ferramenta e-SAJ do TJSP [^acesse]. Fizemos a busca da forma menos restritiva possível, limitando apenas aos 146 órgãos julgadores definidos na seção ``Direito Criminal'' na página de pesquisa e limitando as datas de julgamento entre 01/01/2014 até 31/12/2014.
+
+[^acesse]: Acesse [esaj.tjsp.jus.br/cjsg/resultadoCompleta.do](https://esaj.tjsp.jus.br/cjsg/resultadoCompleta.do).
+
+A consulta retornou um total de 157.379 acórdãos. Pelo que vimos em outras pesquisas, esse número pode mudar um pouco caso a pesquisa seja realizada em momentos diferentes, mesmo que o período da pesquisa esteja no passado. Na nossa consulta mais recente, realizada em 13/07/2015, a consulta retornou 157.412 resultados.
+
+A partir da utilização do robô construído, foi possível acessar todas as páginas resultantes da consulta e obter as seguintes informações, ainda em formato semi-estruturado (HTML) ou não estruturado (textos livres).
+As informações incluem número do processo, código do acórdão (interno do sistema SAJ), classe / assunto, texto sem formatação, nome do relator, comarca de origem, órgão julgador, data do julgamento, data do registro e ementa.
+
+A informação mais relevante nessa pesquisa é o número do processo. O número foi utilizado para acessar os processos usando outra ferramenta de pesquisa do e-SAJ.
+
+## Download de informações dos processos
+
+A segunda etapa para obtenção dos dados foi obter informações extras a partir da consulta de processos do segundo grau no e-SAJ [^acesse]. Para atender os objetivos da pesquisa, no entanto, fizemos um filtro inicial nos dados. Observe as classes processuais contidas na Tabela 1. Como nosso interesse é somente nas apelações, realizamos um primeiro filtro na base original, buscando apenas decisões com essa classe processual, resultando em 68.238 decisões.
+
+[^acesse]: Acesse [esaj.tjsp.jus.br/cpo/sg/open.do](https://esaj.tjsp.jus.br/cpo/sg/open.do).
+
+```{r, results = 'asis'}
+
+tibble::tribble(
+  ~`Classe`, ~`n`, ~`%`,
+  
+  'Apelação', '68.328', '43.4%',
+  'Habeas Corpus', '49.061', '31.2%',
+  'Agravo de Execução Penal', '24.877', '15.8%',
+  'Embargos de Declaração', '4.825', '3.1%',
+  'Revisão Criminal', '3.919', '2.5%',
+  'Recurso em Sentido Estrito', '3.038', '1.9%',
+  'Agravo Regimental', '1.342', '0.9%',
+  'Outros', 'Ofício', '1.147', '0.7%',
+  'Mandado de Segurança', '932', '0.6%'
+  ) 
+```
+
