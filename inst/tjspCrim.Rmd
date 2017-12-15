@@ -1,20 +1,34 @@
 ---
 title: "Reformas de decisão nas câmaras de direito criminal em São Paulo" 
 author: "Marcelo G. Nunes, Julio A. Z. Trecenti"
-logo: "logo-abj.png"
-company: "Associação Brasileira de Jurimetria"
-company-address: "Rua Gomes de Carvalho, 1356, 2º andar. CEP 04547-005 - São Paulo, SP, Brasil"  
-company-site: "http://abj.org.br"
-output: 
-  abjTemplates::      pdf_document:
-    toc: FALSE
-    keep_tex: FALSE
+#logo: "logo-abj.png"
+#company: "Associação Brasileira de Jurimetria"
+#company-address: "Rua Gomes de Carvalho, 1356, 2º andar. CEP 04547-005 - São Paulo, SP, Brasil"  
+#company-site: "http://abj.org.br"
+output: html_document 
+#  abjTemplates::      pdf_document:
+#    toc: FALSE
+#    keep_tex: FALSE
 ---
 
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 #source("./R/download.R")
+
+# Download and parse cjsg
+#d_cjsg_n <- cjsg_download()
+
+# Download and parse cposg
+#d_cposg <- cposg_download()
+
+##d_cjsg <- d_cjsg_n %>% 
+#  pre_process_cjsg()
+
+# Dados do Júlio
+load('/home/storage/abj/projects/tjspCrim/data/d_final.rda')
+d_final
+
 ```
 
 # Marcelo Guedes Nunes
@@ -87,20 +101,170 @@ A segunda etapa para obtenção dos dados foi obter informações extras a parti
 
 [^acesse]: Acesse [esaj.tjsp.jus.br/cpo/sg/open.do](https://esaj.tjsp.jus.br/cpo/sg/open.do).
 
-```{r, results = 'asis'}
+(Tabela de frequências das classes processuais.)
 
-tibble::tribble(
-  ~`Classe`, ~`n`, ~`%`,
-  
-  'Apelação', '68.328', '43.4%',
-  'Habeas Corpus', '49.061', '31.2%',
-  'Agravo de Execução Penal', '24.877', '15.8%',
-  'Embargos de Declaração', '4.825', '3.1%',
-  'Revisão Criminal', '3.919', '2.5%',
-  'Recurso em Sentido Estrito', '3.038', '1.9%',
-  'Agravo Regimental', '1.342', '0.9%',
-  'Outros', 'Ofício', '1.147', '0.7%',
-  'Mandado de Segurança', '932', '0.6%'
-  ) 
+```{r, results = 'asis'}
+#d_cjsg_n
+#d_cjsg <- d_cjsg_n %>% 
+#  pre_process_cjsg()
+#tabela <- d_cjsg %>% 
+#  filter(str_detect(orgao_secao, "Criminal")) %>% 
+#  select(class) %>% 
+#  count(class)
+
+#tibble::tribble(
+#  ~`Classe`, ~`n`, ~`%`,
+#  
+#  'Apelação', '68.328', '43.4%',
+#  'Habeas Corpus', '49.061', '31.2%',
+##  'Agravo de Execução Penal', '24.877', '15.8%',
+#  'Embargos de Declaração', '4.825', '3.1%',
+#  'Revisão Criminal', '3.919', '2.5%',
+#  'Recurso em Sentido Estrito', '3.038', '1.9%',
+#  'Agravo Regimental', '1.342', '0.9%',
+#  'Outros', 'Ofício', '1.147', '0.7%',
+#  'Mandado de Segurança', '932', '0.6%'
+#  ) 
 ```
 
+
+A partir da lista de processos, utilizamos a página do e-SAJ para consulta de processos de segundo grau. Na base de dados filtrada, temos somente 68.044 números de processos únicos (os números duplicados correspondem a processos com mais de uma apelação, e.g., apelação do ministério público e do réu).
+
+Utilizando ferramentas semelhantes à da subseção anterior para raspagem dos dados, conseguimos obter informações do texto da decisão, partes e andamentos dos processos. Essas informações foram então incorporadas à base de dados original filtrada.
+
+## Manipulação e text mining
+
+O último passo para a obtenção da base de dados final é também o mais trabalhoso. A consolidação envolve a manipulação e limpeza dos dados, além da extração de informações dos textos.
+
+Nessa pesquisa, consideramos no escopo somente apelações realizadas contra o Ministério Público. Assim, incluímos na base somente processos em que o réu apelava para pedir cancelamento, redução de pena, etc. Após
+esse filtro ficamos com uma base contendo 57.625 processos.
+
+Para obter as decisões dos processos, fizemos um *text mining* dos textos das decisoes, extraindo os resultados a partir de regras lógicas e expressões regulares. Os resultados não são totalmente a prova de
+erros, mas é provavel que as classificações estejam próximas da realidade.
+
+Não foi possível classificar a decisão de 618 casos e, por conta disso, as análises precisam utilizar técnicas que lidam de forma adequada com dados faltantes. Para isso, utilizamos imputação de dados utilizando o modelo Amelia II (Gary King et. al., 2011).
+
+## Base de dados final
+
+A base de dados final contém 57.625 linhas e 7 colunas, com as seguintes variáveis:
+
+- Número do processo: número CNJ identificador do processo.
+- Relator: nome do relator.
+- Comarca: nome da comarca de origem do processo.
+- Órgão Julgador: câmara de direito criminal.
+- Data de julgamento: data do julgamento do processo.
+- Assunto: assunto do processo, na maioria das vezes classificado a partir da resolução 65 do CNJ.
+- Decisão: decisão do processo.
+
+## Resultados
+
+A Tabela **XXX - ALTERAR** mostra o a distribuição das decisões dos processos. É interessante notar que a taxa de decisões desfavoráveis é de aproximadamente 50\%, o que vai de encontro com o resultado apresentado
+por Priest \& Klein (1984).
+
+(Tabela de frequências dos resultados dos processos.)
+
+```{r}
+d_final %>%
+  count(decisao)
+```
+
+O modelo apresentado por Priest e Klein utiliza é baseado em um viés de seleção que considera a qualidade do recurso e as expectativas das partes em relação a esse recurso. Vamos ilustrar isso no caso cível. Por um lado, se ambas as partes acreditam que o autor tem razão, o réu tende a oferecer um acordo. Por outro lado, se ambas as partes acreditam que o réu tem razão, então o autor não chega a litigar. O litígio ocorre quando existe uma diferença nas expectativas das partes em relação ao processo, ou seja, quando ambos acreditam que vão ganhar. Isso faz com que somente casos com maior incerteza de resultado cheguem a julgamento, de forma que, sob certas suposições, a proporção final de resultados favoráveis tenda ao valor de 50\%.
+
+No caso criminal, no entanto, o acordo entre as partes não existe. Isso seria suficiente para invalidar o modelo de Priest e Klein. O único estudo já feito sobre viés de seleção em casos criminais é encontrado em Klerman (2000), e ele só foi possível pois a pesquisa é baseada em processos do século XIII, ainda na idade média, que segundo o autor incluiam a possibilidade de acordo.
+
+Ainda assim, encontramos na nossa pesquisa um valor muito próximo de 50\%. Esse é um resultado bastante intrigante, que poderia ser fruto do acaso, mas poderia também ser a aplicação de um modelo de seleção ainda desconhecido na academia. Neste artigo, não almejamos construir tal modelo, e o que fizemos foi simplesmente investigar o que ocorre com os resultados em algumas subpopulações.
+
+## Comarca de origem
+
+A Tabela **XXX - ALTERAR** mostra a distribuição dos resultados dos processos em relação às quinze comarcas com maior volume processual. Podemos notar que o padrão muda de forma significativa em cada comarca. Piracicaba, Santo André e Campinas apresentam taxas de apelações negadas acima de 60\%, enquanto Mogi das Cruzes e Sumaré apresentam taxas menores do que 45\%. Num contexto de viés de seleção, estas diferenças podem ser significativas e podem indicar que o perfil dos processos e/ou decisões em primeira instância nessas comarcas pode ser diferente.
+
+(Tabela de frequências dos resultados dos processos segundo comarca.)
+
+```{r}
+
+```
+
+## Assunto
+
+Em relação ao assunto, é de se esperar que este tenha um efeito relevante no resultado das apelações, principalmente por conta da gravidade do crime e da dificuldade na elaboração de provas. Por outro lado, por conta da existência do viés de seleção, essas diferenças podem parecer menores do que realmente são.
+
+A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação aos vinte assuntos com maior volume processual. Podemos verificar uma grande variabilidade nos resultados dos processos, considerando-se o viés de seleção inerente. Os assuntos com maiores taxas de recursos negados são homicídio qualificado, latrocínio, roubo e estupro de vulnerável, justamente os tipos de crimes considerados mais graves. Os três assuntos com menores taxas de recursos negados são os crimes de trânsito e violação de direito autoral e outros assuntos, que agrupa todos os assuntos trinta ou menos processos.
+
+(Tabela de frequências dos resultados dos processos segundo assunto.)
+
+## Órgão julgador
+
+Em relação ao órgão julgador espera-se, a priori, que o órgão não influencie na distribuição das decisões dos processos, pois os processos dentro de cada câmara podem ser considerados homogêneos. Essa explicação só seria válida, no entanto, em relação às câmaras ordinárias, pois as câmaras extraordinárias julgam, em teoria, processos com características distintas.
+
+A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação ao tipo de órgão julgador. Na comparação, é possível notar que as câmaras extraordinárias apresentam uma ligeira superioridade em relação à proporção de recursos negados, no entanto, essa diferença não chega perto das diferenças encontradas entre algumas câmaras ordinárias.
+
+(Tabela de frequências dos resultados dos processos segundo tipo de órgão julgador.)
+
+Os resultados que seguem são surpreendentes. A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação aos órgãos julgadores. Aqui, encontramos discrepâncias enormes, onde podemos encontrar câmaras com mais de 75\% de recursos negados (quarta e sexta) e câmaras com menos de 30\% de recursos negados (primeira, segunda e décima segunda). Este resultado poderia ser explicado por duas hipóteses: i) os processos não são distribuídos aleatoriamente nas câmaras, e é feita uma triagem que envolve a "qualidade" do recurso; ou ii) os magistrados de cada câmara comportam-se de maneiras muito diferentes, mesmo para processos considerados homogêneos.
+
+(Tabela de frequências dos resultados dos processos segundo órgao julgador.)
+
+Uma alternativa para verificar se existe uma diferença nos tipos processuais dentro de cada câmara é estudar a distribuição dos assuntos dentro das câmaras. Essa explicação não seria definitiva, afinal pode ser que sejam separados processos de mesmos assuntos mas com qualidades diferentes, mas é a verificação que os dados nos permitem realizar.
+
+A Tabela **XXX** mostra a distribuição de assuntos em cada câmara. Como temos muitos assuntos, foi necessário agrupar os assuntos com menor volume em uma categoria. Em relação aos assuntos tráfico de drogas e condutas afins, furto, furto qualificado e roubo majorado, podemos identificar algumas diferenças nas distribuições, mas nada que justifique a grande discrepância observada nos resultados.
+
+(Tabela de frequências dos assuntos dos processos segundo órgao julgador. (continued below))
+
+Na Figura **XXX**, buscamos mostrar de forma visual a distribuição de todos os assuntos dentro de cada câmara, mostrando a proporção de processos de cada assunto em cada câmara. Não identificamos os assuntos para não poluir o gráfico. No gráfico, é possível notar ligeiras discrepâncias, principalmente na décima terceira e quinta câmaras. A décima terceira câmara não mostra diferenças nos resultados em relação ao total, enquanto a quinta câmara apresenta alta proporção de recursos negados (71\%).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-9-1.pdf}
+\caption{Distribuição dos assuntos em cada câmara.}
+\end{figure}
+
+Buscando homogeneizar os grupos, definimos um algoritmo que cria uma reamostragem de processos, dentro de cada câmara, a partir dos assuntos, mas utilizando como base a proporção geral dos assuntos na base de dados. Dessa forma, foi possível construir uma base com o mesmo número de observações, mas com a mesma distribuição de assuntos dentro de cada câmara. Observe, na Figura **XXX**, como as câmaras ficaram próximas.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-10-1.pdf}
+\caption{Distribuição dos assuntos em cada câmara, base homogeneizada.}
+\end{figure}
+
+A Tabela **XXX** mostra os resultados para a base de dados homogeneizada. Podemos observar que, mesmo realizando esse ajuste, os resultados das câmaras permanecem distintos.
+
+(Tabela de frequências dos resultados dos processos segundo órgao julgador, a partir de base homogeneizada.)
+```{r}
+
+```
+
+## Relator
+
+A análise por órgão julgador nos dá a intuição de que pode ser que os resultados dos processos sejam efeito de diferentes formas que os magistrados têm ao conduzir os processos.
+
+A Tabela XXX mostra a distribuição dos resultados dos processos em relação aos quinze relatores com maior volume de processos. Na comparação, é possível notar que existem discrepâncias significativas na proporção de resultados desfavoráveis, chegando a ser maior do que 85\% em dois casos. Seria interessante investigar esses casos mais a fundo, pois a diferença observada poderia ser explicada tanto por uma diferença na interpretação quanto por diferenças dos perfis dos processos de cada relator.
+
+(Tabela de frequências dos resultados dos processos segundo relator.)
+
+```{r}
+
+```
+
+Buscando verificar se existe viés por conta dos assuntos dos processos, aplicamos a mesma análise realizada nas câmaras afim de homogeneizar os relatores. Assim como no caso das câmaras, as discrepâncias foram mantidas.
+
+## Data de julgamento
+
+A Figura **XXX** mostra as proporções de resultados dos processos em cada mês. É possível notar que entre os meses de junho e setembro houve um aumento significativo na proporção de recursos negados, caindo novamente
+entre setembro e dezembro.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-13-1.pdf}
+\caption{Proporções resultados dos processos por mês.}
+\end{figure}
+
+## Discussão e considerações finais
+
+Os resultados confirmam algumas intuições, trazem novas ideias e mostram números que desafiam o senso comum.
+Primeiramente, encontramos evidências de que pode existir viés de seleção mesmo em casos criminais. Obviamente, o mecanismo causal por trás desse viés não segue de forma estrita a formulação teórica desenvolvida por Priest e Klein, por conta de peculiaridades na realização de acordos e transações penais na justiça criminal. No entanto, os resultados apontam para a existência de um novo foco de investigação na jurimetria.
+
+Em segundo lugar, confirmamos algumas intuições de que as taxas de reforma seriam menores em crimes mais graves. Roubo, Roubo majorado, homicídio qualificado, latrocínio e tráfico de drogas apresentaram taxas de provimento total das apelações abaixo de 10%. Ainda assim, talvez por conta do próprio viés de seleção, a taxa de recursos negados não passou de 70% em todos os assuntos com maior volume processual.
+
+Finalmente, encontramos um resultado contra-intuitivo e, de certa forma, perturbador. Os resultados das apelações, quando comparados entre câmaras, apresentam variações muito elevadas, com taxas de recursos negados indo de 16% até 81%. Verificamos, também, que essa variação não é devida a diferenças de tipos processuais segundo o assunto. Os números, ainda que preliminares, nos levam a crer em duas hipóteses: ou a distribuição dos recursos nas câmaras não é aleatória, ou existe uma discrepância na atuação dos magistrados. Ambas as hipóteses são, de certa forma, preocupantes, pois estão associadas a uma percepção de grande insegurança jurídica. 
+
+Em relação ao tema que motivou essa investigação preliminar, os dados mostram que é relevante a quantidade de apelações contra o Ministério Público que são parcialmente e totalmente providos em segunda instância. Por conta disso, iniciar o cumprimento de pena a partir da sentença em primeira instância parece ser inapropriado. A hipótese de relativizar o momento de início do cumprimento de pena de acordo com o tipo de processo também é refutada, pois mesmo nos conflitos mais graves (homicídio, latrocínio etc.) a taxa de reforma de decisão não é negligenciável, se consideradas as apelações parcialmente providas.
