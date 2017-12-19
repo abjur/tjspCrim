@@ -10,20 +10,21 @@ cjsg_download <- function(path = '/home/storage/abj/projects/tjspCrim/d_cjsg') {
   
   arqs <- dir(path = path, full.names = TRUE)
   message("Parsing files...")
-  parse_cjsg(arqs)
+  parseados <- esaj::parse_cjsg(arqs)
+  saveRDS(parseados, "/home/storage/abj/projects/tjspCrim/data/d_cjsg.rds")
 }
 
 # Download and parse cposg
-cposg_download <- function(){ 
+cposg_download <- function(path = '/home/storage/abj/projects/tjspCrim/d_cposg'){ 
   
   message("Downloading files...")
-  esaj::download_cposg(id = d_cjsg$id_lawsuit, path = '/home/storage/abj/projects/tjspCrim/d_cposg')
+  esaj::download_cposg(id = d_cjsg$id, path = path)
   
   simple_parser <- esaj::make_parser() %>% 
-    esaj::parse_decisions() %>% 
-    esaj::parse_parts() %>% 
-    esaj::parse_data()
+    esaj::parse_decisions()
   
   message("Parsing files...")
-  esaj::run_parser(file = d_cposg, parser = simple_parser, path = '/home/storage/abj/projects/tjspCrim/d_cposg')
+  cposg <- dir(path = path, full.names = T)
+  parseados <- esaj::run_parser(file = cposg, parser = simple_parser, path = path)
+  saveRDS(parseados, "/home/storage/abj/projects/tjspCrim/data/d_cposg.rds")
 }
