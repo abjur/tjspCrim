@@ -14,21 +14,26 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-#source("./R/download.R")
+source("/home/storage/abj/projects/tjspCrim/R/pre_process.R")
+source("/home/storage/abj/projects/tjspCrim/R/download.R")
 
 # Download and parse cjsg
-#d_cjsg_n <- cjsg_download()
+download_cjsg()
+d_cjsg <- readRDS("/home/storage/abj/projects/tjspCrim/data/d_cjsg.rds") %>% 
+  pre_process_cjsg()
 
 # Download and parse cposg
-#d_cposg <- cposg_download()
+cposg_download()
+d_cposg <- readRDS("/home/storage/abj/projects/tjspCrim/data/d_cposg.rds") %>%
+  pre_process_decision()
 
-##d_cjsg <- d_cjsg_n %>% 
-#  pre_process_cjsg()
+# Dados completos
+d_cposg_cjsg <- d_cposg %>% 
+  left_join(d_cjsg, by = 'id')
 
 # Dados do Júlio
 load('/home/storage/abj/projects/tjspCrim/data/d_final.rda')
 d_final
-
 ```
 
 # Marcelo Guedes Nunes
@@ -101,28 +106,30 @@ A segunda etapa para obtenção dos dados foi obter informações extras a parti
 
 [^acesse]: Acesse [esaj.tjsp.jus.br/cpo/sg/open.do](https://esaj.tjsp.jus.br/cpo/sg/open.do).
 
-(Tabela de frequências das classes processuais.)
+Tabela de frequências das classes processuais.
 
 ```{r, results = 'asis'}
-#d_cjsg_n
-#d_cjsg <- d_cjsg_n %>% 
-#  pre_process_cjsg()
-#tabela <- d_cjsg %>% 
-#  filter(str_detect(orgao_secao, "Criminal")) %>% 
-#  select(class) %>% 
-#  count(class)
+
+tabela <- d_cjsg %>% 
+  select(class) %>% 
+  count(class) %>% 
+  filter(n > 30)
+
+d_cjsg %>%
+  mutate(class = ifelse(class %in% tabela$class, class, "Outros")) %>% 
+  count(class)
 
 #tibble::tribble(
 #  ~`Classe`, ~`n`, ~`%`,
 #  
 #  'Apelação', '68.328', '43.4%',
 #  'Habeas Corpus', '49.061', '31.2%',
-##  'Agravo de Execução Penal', '24.877', '15.8%',
+#  'Agravo de Execução Penal', '24.877', '15.8%',
 #  'Embargos de Declaração', '4.825', '3.1%',
 #  'Revisão Criminal', '3.919', '2.5%',
 #  'Recurso em Sentido Estrito', '3.038', '1.9%',
 #  'Agravo Regimental', '1.342', '0.9%',
-#  'Outros', 'Ofício', '1.147', '0.7%',
+#  'Outros', '1.147', '0.7%',
 #  'Mandado de Segurança', '932', '0.6%'
 #  ) 
 ```
@@ -161,11 +168,19 @@ A base de dados final contém 57.625 linhas e 7 colunas, com as seguintes variá
 A Tabela **XXX - ALTERAR** mostra o a distribuição das decisões dos processos. É interessante notar que a taxa de decisões desfavoráveis é de aproximadamente 50\%, o que vai de encontro com o resultado apresentado
 por Priest \& Klein (1984).
 
-(Tabela de frequências dos resultados dos processos.)
+Tabela de frequências dos resultados dos processos.
 
 ```{r}
+# dados Júlio
+d_final$decisao <- factor(d_final$decisao, levels = c('provido', 'parcialmente', 'negaram', 'outros'))
 d_final %>%
   count(decisao)
+
+# dados completos
+d_cposg_cjsg$decision <- factor(d_cposg_cjsg$decision, levels = c('Provido', 'Parcialmente', 'Negaram', 'Outros'))
+
+d_cposg_cjsg %>% 
+  count(decision)
 ```
 
 O modelo apresentado por Priest e Klein utiliza é baseado em um viés de seleção que considera a qualidade do recurso e as expectativas das partes em relação a esse recurso. Vamos ilustrar isso no caso cível. Por um lado, se ambas as partes acreditam que o autor tem razão, o réu tende a oferecer um acordo. Por outro lado, se ambas as partes acreditam que o réu tem razão, então o autor não chega a litigar. O litígio ocorre quando existe uma diferença nas expectativas das partes em relação ao processo, ou seja, quando ambos acreditam que vão ganhar. Isso faz com que somente casos com maior incerteza de resultado cheguem a julgamento, de forma que, sob certas suposições, a proporção final de resultados favoráveis tenda ao valor de 50\%.
@@ -178,10 +193,18 @@ Ainda assim, encontramos na nossa pesquisa um valor muito próximo de 50\%. Esse
 
 A Tabela **XXX - ALTERAR** mostra a distribuição dos resultados dos processos em relação às quinze comarcas com maior volume processual. Podemos notar que o padrão muda de forma significativa em cada comarca. Piracicaba, Santo André e Campinas apresentam taxas de apelações negadas acima de 60\%, enquanto Mogi das Cruzes e Sumaré apresentam taxas menores do que 45\%. Num contexto de viés de seleção, estas diferenças podem ser significativas e podem indicar que o perfil dos processos e/ou decisões em primeira instância nessas comarcas pode ser diferente.
 
-(Tabela de frequências dos resultados dos processos segundo comarca.)
+Tabela de frequências dos resultados dos processos segundo comarca.
 
 ```{r}
+# Dados Júlio
+d_final %>% 
+  count(comarca, decisao) %>% 
+  spread(key = decisao, value = n)
 
+# Dados completos
+d_cposg_cjsg %>% 
+  count(district, decision) %>% 
+  spread(key = decision, value = n)
 ```
 
 ## Assunto
@@ -190,7 +213,18 @@ Em relação ao assunto, é de se esperar que este tenha um efeito relevante no 
 
 A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação aos vinte assuntos com maior volume processual. Podemos verificar uma grande variabilidade nos resultados dos processos, considerando-se o viés de seleção inerente. Os assuntos com maiores taxas de recursos negados são homicídio qualificado, latrocínio, roubo e estupro de vulnerável, justamente os tipos de crimes considerados mais graves. Os três assuntos com menores taxas de recursos negados são os crimes de trânsito e violação de direito autoral e outros assuntos, que agrupa todos os assuntos trinta ou menos processos.
 
-(Tabela de frequências dos resultados dos processos segundo assunto.)
+Tabela de frequências dos resultados dos processos segundo assunto.
+```{r}
+# Dados Júlio
+d_final %>% 
+  count(assunto, decisao) %>% 
+  spread(key = decisao, value = n)
+
+# Dados completos
+d_cposg_cjsg %>% 
+  count(subject, decision) %>% 
+  spread(key = decision, value = n)
+```
 
 ## Órgão julgador
 
@@ -198,19 +232,62 @@ Em relação ao órgão julgador espera-se, a priori, que o órgão não influen
 
 A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação ao tipo de órgão julgador. Na comparação, é possível notar que as câmaras extraordinárias apresentam uma ligeira superioridade em relação à proporção de recursos negados, no entanto, essa diferença não chega perto das diferenças encontradas entre algumas câmaras ordinárias.
 
-(Tabela de frequências dos resultados dos processos segundo tipo de órgão julgador.)
+Tabela de frequências dos resultados dos processos segundo tipo de órgão julgador.
+```{r}
+# Dados Júlio
+d_final %>% 
+  mutate(tipo_orgaojulgador = 
+           ifelse(str_detect(orgao_julgador, "Extraordinária"), "Extraordinária", "Ordinária")) %>%
+  count(tipo_orgaojulgador, decisao) %>% 
+  spread(key = decisao, value = n)
+
+# Dados completos
+d_cposg_cjsg%>% 
+  mutate(type_court = 
+           ifelse(str_detect(court, "Extraordinária"), "Extraordinária", "Ordinária")) %>%
+  count(type_court, decision) %>% 
+  spread(key = decision, value = n)
+```
 
 Os resultados que seguem são surpreendentes. A Tabela **XXX** mostra a distribuição dos resultados dos processos em relação aos órgãos julgadores. Aqui, encontramos discrepâncias enormes, onde podemos encontrar câmaras com mais de 75\% de recursos negados (quarta e sexta) e câmaras com menos de 30\% de recursos negados (primeira, segunda e décima segunda). Este resultado poderia ser explicado por duas hipóteses: i) os processos não são distribuídos aleatoriamente nas câmaras, e é feita uma triagem que envolve a "qualidade" do recurso; ou ii) os magistrados de cada câmara comportam-se de maneiras muito diferentes, mesmo para processos considerados homogêneos.
 
-(Tabela de frequências dos resultados dos processos segundo órgao julgador.)
+Tabela de frequências dos resultados dos processos segundo órgao julgador.
+```{r}
+# Dados Júlio
+d_final %>% 
+  count(orgao_julgador, decisao) %>% 
+  spread(key = decisao, value = n)
+
+# Dados completos
+d_cposg_cjsg%>% 
+  count(court, decision) %>% 
+  spread(key = decision, value = n)
+```
 
 Uma alternativa para verificar se existe uma diferença nos tipos processuais dentro de cada câmara é estudar a distribuição dos assuntos dentro das câmaras. Essa explicação não seria definitiva, afinal pode ser que sejam separados processos de mesmos assuntos mas com qualidades diferentes, mas é a verificação que os dados nos permitem realizar.
 
 A Tabela **XXX** mostra a distribuição de assuntos em cada câmara. Como temos muitos assuntos, foi necessário agrupar os assuntos com menor volume em uma categoria. Em relação aos assuntos tráfico de drogas e condutas afins, furto, furto qualificado e roubo majorado, podemos identificar algumas diferenças nas distribuições, mas nada que justifique a grande discrepância observada nos resultados.
 
-(Tabela de frequências dos assuntos dos processos segundo órgao julgador. (continued below))
+Tabela de frequências dos assuntos dos processos segundo órgao julgador.
+```{r}
+# Dados Júlio
+d_final %>% 
+  mutate(assunto = ifelse(str_detect(assunto, c("Roubo", "Furto", "Tráfico")), assunto, "Outros")) %>% 
+  count(orgao_julgador, assunto) %>% 
+  spread(key = assunto, value = n)
+
+# Dados completos
+d_cposg_cjsg%>% 
+  mutate(subject = ifelse(str_detect(subject, c("Roubo", "Furto", "Tráfico")), subject, "Outros")) %>% 
+  count(court, subject) %>% 
+  spread(key = subject, value = n)
+```
 
 Na Figura **XXX**, buscamos mostrar de forma visual a distribuição de todos os assuntos dentro de cada câmara, mostrando a proporção de processos de cada assunto em cada câmara. Não identificamos os assuntos para não poluir o gráfico. No gráfico, é possível notar ligeiras discrepâncias, principalmente na décima terceira e quinta câmaras. A décima terceira câmara não mostra diferenças nos resultados em relação ao total, enquanto a quinta câmara apresenta alta proporção de recursos negados (71\%).
+
+```{r}
+
+```
 
 \begin{figure}[htbp]
 \centering
@@ -219,6 +296,10 @@ Na Figura **XXX**, buscamos mostrar de forma visual a distribuição de todos os
 \end{figure}
 
 Buscando homogeneizar os grupos, definimos um algoritmo que cria uma reamostragem de processos, dentro de cada câmara, a partir dos assuntos, mas utilizando como base a proporção geral dos assuntos na base de dados. Dessa forma, foi possível construir uma base com o mesmo número de observações, mas com a mesma distribuição de assuntos dentro de cada câmara. Observe, na Figura **XXX**, como as câmaras ficaram próximas.
+
+```{r}
+
+```
 
 \begin{figure}[htbp]
 \centering
@@ -237,12 +318,14 @@ A Tabela **XXX** mostra os resultados para a base de dados homogeneizada. Podemo
 
 A análise por órgão julgador nos dá a intuição de que pode ser que os resultados dos processos sejam efeito de diferentes formas que os magistrados têm ao conduzir os processos.
 
-A Tabela XXX mostra a distribuição dos resultados dos processos em relação aos quinze relatores com maior volume de processos. Na comparação, é possível notar que existem discrepâncias significativas na proporção de resultados desfavoráveis, chegando a ser maior do que 85\% em dois casos. Seria interessante investigar esses casos mais a fundo, pois a diferença observada poderia ser explicada tanto por uma diferença na interpretação quanto por diferenças dos perfis dos processos de cada relator.
+A Tabela *XXX* mostra a distribuição dos resultados dos processos em relação aos quinze relatores com maior volume de processos. Na comparação, é possível notar que existem discrepâncias significativas na proporção de resultados desfavoráveis, chegando a ser maior do que 85\% em dois casos. Seria interessante investigar esses casos mais a fundo, pois a diferença observada poderia ser explicada tanto por uma diferença na interpretação quanto por diferenças dos perfis dos processos de cada relator.
 
-(Tabela de frequências dos resultados dos processos segundo relator.)
-
+Tabela de frequências dos resultados dos processos segundo relator.
 ```{r}
-
+# Dados Júlio
+d_final %>% 
+  count(relator, decisao) %>% 
+  spread(key = decisao, value = n)
 ```
 
 Buscando verificar se existe viés por conta dos assuntos dos processos, aplicamos a mesma análise realizada nas câmaras afim de homogeneizar os relatores. Assim como no caso das câmaras, as discrepâncias foram mantidas.
@@ -252,6 +335,11 @@ Buscando verificar se existe viés por conta dos assuntos dos processos, aplicam
 A Figura **XXX** mostra as proporções de resultados dos processos em cada mês. É possível notar que entre os meses de junho e setembro houve um aumento significativo na proporção de recursos negados, caindo novamente
 entre setembro e dezembro.
 
+```{r}
+
+```
+
+## Referências
 \begin{figure}[htbp]
 \centering
 \includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-13-1.pdf}
