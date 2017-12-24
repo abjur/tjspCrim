@@ -18,22 +18,21 @@ source("/home/storage/abj/projects/tjspCrim/R/pre_process.R")
 source("/home/storage/abj/projects/tjspCrim/R/download.R")
 
 # Download and parse cjsg
-download_cjsg()
-d_cjsg <- readRDS("/home/storage/abj/projects/tjspCrim/data/d_cjsg.rds") %>% 
+# cjsg_download()
+d_cjsg <- readRDS("/home/storage/abj/projects/tjspCrim/data/d_cjsg.rds") %>%
   pre_process_cjsg()
 
 # Download and parse cposg
-cposg_download()
+# cposg_download()
 d_cposg <- readRDS("/home/storage/abj/projects/tjspCrim/data/d_cposg.rds") %>%
   pre_process_decision()
 
 # Dados completos
 d_cposg_cjsg <- d_cposg %>% 
-  left_join(d_cjsg, by = 'id')
+  inner_join(d_cjsg, by = 'id')
 
 # Dados do Júlio
 load('/home/storage/abj/projects/tjspCrim/data/d_final.rda')
-d_final
 ```
 
 # Marcelo Guedes Nunes
@@ -107,31 +106,16 @@ A segunda etapa para obtenção dos dados foi obter informações extras a parti
 [^acesse]: Acesse [esaj.tjsp.jus.br/cpo/sg/open.do](https://esaj.tjsp.jus.br/cpo/sg/open.do).
 
 Tabela de frequências das classes processuais.
-
-```{r, results = 'asis'}
-
+```{r}
 tabela <- d_cjsg %>% 
   select(class) %>% 
   count(class) %>% 
-  filter(n > 30)
+  filter(n > 100)
 
 d_cjsg %>%
-  mutate(class = ifelse(class %in% tabela$class, class, "Outros")) %>% 
-  count(class)
-
-#tibble::tribble(
-#  ~`Classe`, ~`n`, ~`%`,
-#  
-#  'Apelação', '68.328', '43.4%',
-#  'Habeas Corpus', '49.061', '31.2%',
-#  'Agravo de Execução Penal', '24.877', '15.8%',
-#  'Embargos de Declaração', '4.825', '3.1%',
-#  'Revisão Criminal', '3.919', '2.5%',
-#  'Recurso em Sentido Estrito', '3.038', '1.9%',
-#  'Agravo Regimental', '1.342', '0.9%',
-#  'Outros', '1.147', '0.7%',
-#  'Mandado de Segurança', '932', '0.6%'
-#  ) 
+  mutate(Classe = ifelse(class %in% tabela$class, class, "Outros")) %>% 
+  count(Classe, sort = T) %>% 
+  mutate('%' = paste(round(as.numeric(n)/sum(as.numeric(n))*100, 1), "%", sep=""))
 ```
 
 
@@ -143,11 +127,9 @@ Utilizando ferramentas semelhantes à da subseção anterior para raspagem dos d
 
 O último passo para a obtenção da base de dados final é também o mais trabalhoso. A consolidação envolve a manipulação e limpeza dos dados, além da extração de informações dos textos.
 
-Nessa pesquisa, consideramos no escopo somente apelações realizadas contra o Ministério Público. Assim, incluímos na base somente processos em que o réu apelava para pedir cancelamento, redução de pena, etc. Após
-esse filtro ficamos com uma base contendo 57.625 processos.
+Nessa pesquisa, consideramos no escopo somente apelações realizadas contra o Ministério Público. Assim, incluímos na base somente processos em que o réu apelava para pedir cancelamento, redução de pena, etc. Após esse filtro ficamos com uma base contendo 57.625 processos.
 
-Para obter as decisões dos processos, fizemos um *text mining* dos textos das decisoes, extraindo os resultados a partir de regras lógicas e expressões regulares. Os resultados não são totalmente a prova de
-erros, mas é provavel que as classificações estejam próximas da realidade.
+Para obter as decisões dos processos, fizemos um *text mining* dos textos das decisoes, extraindo os resultados a partir de regras lógicas e expressões regulares. Os resultados não são totalmente a prova de erros, mas é provavel que as classificações estejam próximas da realidade.
 
 Não foi possível classificar a decisão de 618 casos e, por conta disso, as análises precisam utilizar técnicas que lidam de forma adequada com dados faltantes. Para isso, utilizamos imputação de dados utilizando o modelo Amelia II (Gary King et. al., 2011).
 
@@ -169,18 +151,15 @@ A Tabela **XXX - ALTERAR** mostra o a distribuição das decisões dos processos
 por Priest \& Klein (1984).
 
 Tabela de frequências dos resultados dos processos.
-
 ```{r}
 # dados Júlio
-d_final$decisao <- factor(d_final$decisao, levels = c('provido', 'parcialmente', 'negaram', 'outros'))
 d_final %>%
   count(decisao)
 
 # dados completos
-d_cposg_cjsg$decision <- factor(d_cposg_cjsg$decision, levels = c('Provido', 'Parcialmente', 'Negaram', 'Outros'))
-
 d_cposg_cjsg %>% 
-  count(decision)
+  count(decision, sort = T) %>% 
+  mutate('%' = paste(round(as.numeric(n)/sum(as.numeric(n))*100, 1), "%", sep=""))
 ```
 
 O modelo apresentado por Priest e Klein utiliza é baseado em um viés de seleção que considera a qualidade do recurso e as expectativas das partes em relação a esse recurso. Vamos ilustrar isso no caso cível. Por um lado, se ambas as partes acreditam que o autor tem razão, o réu tende a oferecer um acordo. Por outro lado, se ambas as partes acreditam que o réu tem razão, então o autor não chega a litigar. O litígio ocorre quando existe uma diferença nas expectativas das partes em relação ao processo, ou seja, quando ambos acreditam que vão ganhar. Isso faz com que somente casos com maior incerteza de resultado cheguem a julgamento, de forma que, sob certas suposições, a proporção final de resultados favoráveis tenda ao valor de 50\%.
@@ -194,7 +173,6 @@ Ainda assim, encontramos na nossa pesquisa um valor muito próximo de 50\%. Esse
 A Tabela **XXX - ALTERAR** mostra a distribuição dos resultados dos processos em relação às quinze comarcas com maior volume processual. Podemos notar que o padrão muda de forma significativa em cada comarca. Piracicaba, Santo André e Campinas apresentam taxas de apelações negadas acima de 60\%, enquanto Mogi das Cruzes e Sumaré apresentam taxas menores do que 45\%. Num contexto de viés de seleção, estas diferenças podem ser significativas e podem indicar que o perfil dos processos e/ou decisões em primeira instância nessas comarcas pode ser diferente.
 
 Tabela de frequências dos resultados dos processos segundo comarca.
-
 ```{r}
 # Dados Júlio
 d_final %>% 
@@ -202,8 +180,13 @@ d_final %>%
   spread(key = decisao, value = n)
 
 # Dados completos
+table <- d_cposg_cjsg %>% 
+  count(district, sort = T) %>% 
+  head(15)
+
 d_cposg_cjsg %>% 
-  count(district, decision) %>% 
+  filter(district %in% table$district) %>% 
+  count(district, decision, sort = T) %>% 
   spread(key = decision, value = n)
 ```
 
@@ -285,27 +268,25 @@ d_cposg_cjsg%>%
 
 Na Figura **XXX**, buscamos mostrar de forma visual a distribuição de todos os assuntos dentro de cada câmara, mostrando a proporção de processos de cada assunto em cada câmara. Não identificamos os assuntos para não poluir o gráfico. No gráfico, é possível notar ligeiras discrepâncias, principalmente na décima terceira e quinta câmaras. A décima terceira câmara não mostra diferenças nos resultados em relação ao total, enquanto a quinta câmara apresenta alta proporção de recursos negados (71\%).
 
+Figura: Distribuição dos assuntos em cada câmara
 ```{r}
-
+d_cposg_cjsg %>%
+  count(subject, court) %>% 
+  
+  ggplot(aes(x = court, y = n, fill = subject)) +
+  geom_bar(stat = "identity", position = 'fill') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(legend.position = "none") +
+  labs(y = "prop")
 ```
-
-\begin{figure}[htbp]
-\centering
-\includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-9-1.pdf}
-\caption{Distribuição dos assuntos em cada câmara.}
-\end{figure}
 
 Buscando homogeneizar os grupos, definimos um algoritmo que cria uma reamostragem de processos, dentro de cada câmara, a partir dos assuntos, mas utilizando como base a proporção geral dos assuntos na base de dados. Dessa forma, foi possível construir uma base com o mesmo número de observações, mas com a mesma distribuição de assuntos dentro de cada câmara. Observe, na Figura **XXX**, como as câmaras ficaram próximas.
 
+Figura: Distribuição dos assuntos em cada câmara, base homogeneizada.
 ```{r}
 
 ```
-
-\begin{figure}[htbp]
-\centering
-\includegraphics{/tmp/RtmpWS90dg/preview-ef06ab1be1f.dir/eped_files/figure-latex/unnamed-chunk-10-1.pdf}
-\caption{Distribuição dos assuntos em cada câmara, base homogeneizada.}
-\end{figure}
 
 A Tabela **XXX** mostra os resultados para a base de dados homogeneizada. Podemos observar que, mesmo realizando esse ajuste, os resultados das câmaras permanecem distintos.
 
@@ -335,7 +316,10 @@ Buscando verificar se existe viés por conta dos assuntos dos processos, aplicam
 A Figura **XXX** mostra as proporções de resultados dos processos em cada mês. É possível notar que entre os meses de junho e setembro houve um aumento significativo na proporção de recursos negados, caindo novamente
 entre setembro e dezembro.
 
+Figura: Proporções resultados dos processos por mês.
 ```{r}
+d_cposg_cjsg %>% 
+  count(decision, dt_decision)
 
 ```
 

@@ -1,12 +1,9 @@
 # Download and parse cjsg
 cjsg_download <- function(path = '/home/storage/abj/projects/tjspCrim/d_cjsg') {
   
-  timedownl_cjsg <- esaj::peek_cjsg(query = "", trial_start = '2014-01-01', trial_end = '2014-12-31')
-  timedownl_cjsg
-  
   message("Downloading files...")
   esaj::download_cjsg(query = "", path = path, 
-                      trial_start = '2014-01-01', trial_end = '2014-12-31', max_page = 5)
+                      trial_start = '2014-01-01', trial_end = '2014-12-31', max_page = Inf)
   
   arqs <- dir(path = path, full.names = TRUE)
   message("Parsing files...")

@@ -1,6 +1,5 @@
 pre_process_cjsg <- function(d){
   d %>%  
-    filter(str_detect(court, "Criminal")) %>% 
     mutate(id = stringr::str_replace_all(id_lawsuit, "[:punct:]",""),
            court = str_replace_all(court, "Câmara Criminal Extraordinária", "Câmara Direito Criminal Extraordinária"),
            class_subject = str_replace(class_subject, 'Classe/Assunto:\n\t\t\t\t\t\t\t\t\t\t\t ', '')) %>%
@@ -8,7 +7,8 @@ pre_process_cjsg <- function(d){
     mutate(court = str_replace(court, "[Ee]xtraordin[áa]ria", "Extraordinária"),
            court = str_replace(court, "[Cc][âa]mara", "Câmara"),
            court = str_replace(court,"[Cc]riminal", "Criminal")) %>% 
-    select(-file, -summary, -txt_summary, -dt_decision, -dt_publication, -dt_registration, -id_decision, -id_lawsuit)
+    select(-file, -summary, -txt_summary, -dt_publication, -dt_registration, -id_decision, -id_lawsuit) %>% 
+    filter(str_detect(court, "Criminal"))
 }
 
 pre_process_decision <- function(d){
