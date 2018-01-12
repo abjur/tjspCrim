@@ -30,3 +30,24 @@ pre_process_decision <- function(d){
            )) %>% 
     select(-date)
 }
+
+homog_base <- function(d){
+  
+  p_subject <- d_cposg_cjsg %>% 
+    count(subject) %>% 
+    mutate(prop = n/sum(n))
+  
+  amostra_processo <- function(d_court) {
+    s <- sample(p_subject$subject, 1, prob = p_subject$prop)
+    d_filtrado <- d_court %>% 
+      filter(subject == s)
+    if (nrow(d_filtrado) == 0) return(tibble(decision = NA_character_))
+    d_filtrado %>% 
+      sample_n(1)
+  }
+  
+  map_dfr(unique(d_cposg_cjsg$court), ~{
+    d_court <- filter(d_cposg_cjsg, court == .x)
+    map_dfr(1:nrow(d_court), ~amostra_processo(d_court))
+  })
+}
